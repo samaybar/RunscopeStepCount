@@ -2,8 +2,9 @@ import requests
 import array
 import json
 import csv
+import sys
 
-filename = "TestDetails.csv"
+filename = "TestDetails8.csv"
 
 fields = ['BucketName','JobName','Steps','PublicLocations','PublicLocation_Count','PrivateLocations','PrivateLocation_Count','Interval']
 
@@ -13,6 +14,37 @@ BucketsURL = "https://api.runscope.com/buckets"
 
 params = {'output': 'JSON'}   
 headers = {'Authorization': 'Bearer TOKENGOESHERE'}
+if (len(sys.argv)>1):
+    authToken = "Bearer " + sys.argv[1] 
+    headers = {'Authorization': authToken}
+
+def count_steps(Steps):
+    stepCount = 0
+    #print(stepCount)
+    for step in Steps:
+        #print(step["step_type"])
+        if(step["skipped"]==False):
+            if(step["step_type"]=="request" or step["step_type"]=="inbound" or step["step_type"]=="ghost-inspector"):
+                stepCount += 1
+            elif(step["step_type"]=="condition"):
+
+                stepCount = stepCount + count_steps(step["steps"])
+            elif(step["step_type"]=="subtest"):
+                stepCount += 1
+                SubtestDetailURL = BucketsURL+"/"+str(step["bucket_key"])+"/tests/"+str(step["test_uuid"])
+                SubtestDetail = requests.get(SubtestDetailURL,headers=headers,params=params) 
+                SubtestDetailData = json.loads(SubtestDetail.text)
+                if(SubtestDetailData["error"] is not None):
+                    stepCount = stepCount
+                    print("subtest is deleted - test will not run")
+                else:
+                    SubtestData = SubtestDetailData["data"]
+                    #print(SubtestData)
+                    stepCount = stepCount + count_steps(SubtestData["steps"])
+            else:
+                stepCount = stepCount
+    #print(stepCount)
+    return stepCount
 
 
 def get_bucket_tests(Bucket, offset):
@@ -28,7 +60,9 @@ def get_bucket_tests(Bucket, offset):
             TestDetailData = json.loads(TestDetail.text)
             TestData = TestDetailData["data"]
             steps = TestData["steps"]
-            stepscount=str(len(steps))           
+            #stepscount=str(len(steps))
+            print(test["id"])           
+            stepscount=count_steps(steps)           
             BucketName = Bucket["name"]
             TestName= TestData["name"]
             
@@ -123,7 +157,7 @@ BucketsList = json.loads(Buckets.text)
 with open(filename, 'w') as csvfile:
     csvwriter = csv.writer(csvfile)
     csvwriter.writerow(fields)
-        
+    
     for Bucket in BucketsList["data"]:
         get_bucket_tests(Bucket,0)
-
+        
