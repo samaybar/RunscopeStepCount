@@ -3,7 +3,7 @@ import array
 import json
 import csv
 
-filename = "TestDetails2.csv"
+filename = "TestDetails.csv"
 
 fields = ['BucketName','JobName','Steps','PublicLocations','PublicLocation_Count','PrivateLocations','PrivateLocation_Count','Interval']
 
@@ -13,17 +13,10 @@ BucketsURL = "https://api.runscope.com/buckets"
 
 params = {'output': 'JSON'}   
 headers = {'Authorization': 'Bearer TOKENGOESHERE'}
-Buckets = requests.get(BucketsURL, headers=headers, params=params)
 
 
-BucketsList = json.loads(Buckets.text)
-
-with open(filename, 'w') as csvfile:
-    csvwriter = csv.writer(csvfile)
-    csvwriter.writerow(fields)
-        
-    for Bucket in BucketsList["data"]:
-        TestListURL = BucketsURL+"/"+str(Bucket["key"])+"/tests?count=100"
+def get_bucket_tests(Bucket, offset):
+        TestListURL = BucketsURL+"/"+str(Bucket["key"])+"/tests?count=100&offset="+str(offset)
         TestListDetail = requests.get(TestListURL,headers=headers,params=params) 
         TestListData = json.loads(TestListDetail.text)
         TestList = TestListData["data"]
@@ -116,3 +109,21 @@ with open(filename, 'w') as csvfile:
                 detail.append("no schedules")
                 csvwriter.writerow(detail)
                 print(detail)
+        if(len(TestList)==100):
+            offset = offset+100
+            get_bucket_tests(Bucket, offset)
+
+
+
+Buckets = requests.get(BucketsURL, headers=headers, params=params)
+
+
+BucketsList = json.loads(Buckets.text)
+
+with open(filename, 'w') as csvfile:
+    csvwriter = csv.writer(csvfile)
+    csvwriter.writerow(fields)
+        
+    for Bucket in BucketsList["data"]:
+        get_bucket_tests(Bucket,0)
+
