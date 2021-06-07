@@ -4,9 +4,9 @@ import json
 import csv
 import sys
 
-filename = "TestDetails8.csv"
+filename = "TestDetails.csv"
 
-fields = ['BucketName','JobName','Steps','PublicLocations','PublicLocation_Count','PrivateLocations','PrivateLocation_Count','Interval']
+fields = ['BucketName','JobName','TestURL','Steps','PublicLocations','PublicLocation_Count','PrivateLocations','PrivateLocation_Count','Interval']
 
 BucketsURL = "https://api.runscope.com/buckets"
 
@@ -56,6 +56,7 @@ def get_bucket_tests(Bucket, offset):
 
         for test in TestList:
             TestDetailURL = BucketsURL+"/"+str(Bucket["key"])+"/tests/"+str(test["id"])
+            TestDashboardURL = "https://www.runscope.com/radar/"+str(Bucket["key"])+"/"+str(test["id"])
             TestDetail = requests.get(TestDetailURL,headers=headers,params=params)
             TestDetailData = json.loads(TestDetail.text)
             TestData = TestDetailData["data"]
@@ -81,6 +82,7 @@ def get_bucket_tests(Bucket, offset):
                      detail=[]
                      detail.append(BucketName)
                      detail.append(TestName)
+                     detail.append(TestDashboardURL)
                      detail.append(stepscount)
                      Private_locations=""
                      Public_locations=""
@@ -135,6 +137,7 @@ def get_bucket_tests(Bucket, offset):
                 detail=[]
                 detail.append(BucketName)
                 detail.append(TestName)
+                detail.append(TestDashboardURL)
                 detail.append(stepscount)
                 detail.append("no schedules")
                 detail.append("0")
